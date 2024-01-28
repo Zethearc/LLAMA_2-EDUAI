@@ -152,9 +152,18 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# PyCharm
-#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+# Carpeta del entorno virtual
+/server_eduai/
+
+# Archivos y carpetas específicos
+/download.sh
+/LICENSE
+/tokenizer_checklist.chk
+/tokenizer.model
+/USE_POLICY.md
+
+# Carpetas que no quieres incluir en el repositorio
+/llama-2-7b-chat/
+/llama-cpp-python/
+/llama.cpp/
+/app/llm_models/7B/ggml-model-q4_0.bin
