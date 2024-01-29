@@ -1,27 +1,21 @@
-# my_app/app/utils/llm_utils.py
 import os
 import json
 from langchain_community.llms import LlamaCpp
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+from langchain.chains import RetrievalQA
 from langchain_community.vectorstores import Pinecone
+from langchain.prompts import PromptTemplate
+from pinecone import Pinecone as pc
 from pydantic import BaseModel
-from pinecone import Pinecone
+from embedding.embedding import retriever
 
 # Cargar configuraciones desde config.json
 config_path = os.path.join(os.path.dirname(__file__), "config.json")
 with open(config_path, "r") as config_file:
     config = json.load(config_file)
 
-# Inicializar Pinecone con try-except
-try:
-    pinecone = Pinecone(api_key=os.environ.get('PINECONE_API_KEY') or 'PINECONE_API_KEY',
-                        environment=os.environ.get('PINECONE_ENVIRONMENT') or 'PINECONE_ENV')
-except Exception as pinecone_init_error:
-    print(f"Failed to initialize Pinecone: {pinecone_init_error}")
-    exit(1)
-
-# Intenta cargar el modelo con Langchain LlamaCpp para GPU
+# Intentar cargar el modelo LLM con Langchain LlamaCpp para GPU
 try:
     callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
     LLM = LlamaCpp(
@@ -32,9 +26,36 @@ try:
         callback_manager=callback_manager,
         verbose=True
     )
-except Exception as e:
-    print(f"Failed to load model: {e}")
+except Exception as llm_init_error:
+    print(f"Failed to load LLM model: {llm_init_error}")
     exit(1)
+
+template = """ Tu nombre es EDUAI, creado por Dario Cabezas, estudiante de Yachay Tech como proyecto de grado. 
+Eres un asistente virtual desarrollado por las universidades Yachay Tech y UIDE en Ecuador. 
+Responde siempre en español para mantener la coherencia.
+Tu propósito es brindar ayuda a estudiantes en matemáticas, tanto de colegios como de universidades. 
+Actúas como un asistente, no como un usuario. Responde desde tu función específica. 
+Mantén respuestas amables, concisas y rápidas para una mejor experiencia. 
+Evita saludar en cada respuesta; responde directamente a la pregunta del usuario. 
+Anima a los estudiantes a seguir aprendiendo de manera constante. 
+Utiliza el formato markdown para mejorar la presentación de las respuestas, incentivando el interés y la pasión por las matemáticas.
+
+Retorna los ejercicios, material audiovisual y referencias
+
+Pregunta: {user_input}
+
+Respuesta: """
+
+full_prompt = PromptTemplate(
+    input_variables=["user_input"],
+    template=template
+)
+
+eduai_chain = RetrievalQA.from_chain_type(
+    llm=llm,
+    chain_type="stuff",
+    retriever=retriever
+)
 
 # Definición del modelo de datos para la consulta
 class Query(BaseModel):
@@ -42,11 +63,7 @@ class Query(BaseModel):
 
 def question(prompt):
     try:
-        # Construye el prompt completo
-        full_prompt = f"{config['init_prompt']}\n{config['q_prompt']} {prompt}\n{config['a_prompt']}"
-        # Genera la completación usando el modelo
-        output = LLM.invoke(full_prompt)
-        result = output["choices"][0]["text"]
+        result = eduai_chain.run(prompt)
         return result
     except Exception as e:
         return f"Error: {e}"

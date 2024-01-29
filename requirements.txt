@@ -2,7 +2,9 @@ fastapi==0.109.0
 langchain==0.1.4
 llama_cpp_python==0.2.33
 uvicorn==0.27.0
-torch
+torch==2.1.2
+torchvision 
+torchaudio
 sentence-transformers
 pinecone-client
 langchain-community
