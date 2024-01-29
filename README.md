@@ -25,7 +25,19 @@ sudo apt install nvidia-cuda-toolkit
 ## Verify the presence of an NVIDIA GPU
 ```bash
 nvidia-smi
+nvcc --version
 ```
+
+## Install llamacpp
+
+```bash
+git clone --recursive -j8 https://github.com/abetlen/llama-cpp-python.git
+cd llama-cpp-python
+export FORCE_CMAKE=1
+export CMAKE_ARGS="-DLLAMA_CUBLAS=ON"
+pip install --upgrade --force-reinstall llama-cpp-python --no-cache-dir
+```
+
 ## Perform a Linux/Ubuntu upgrade
 ```bash
 sudo apt-get update

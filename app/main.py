@@ -1,6 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
-from routes import llm_routes, embedding_routes
+from routes import llm_routes
 
 app = FastAPI()
 

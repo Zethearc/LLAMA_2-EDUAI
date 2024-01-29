@@ -40,24 +40,13 @@ except Exception as e:
 class Query(BaseModel):
     question: str
 
-# Definición del modelo de datos para la respuesta
-class ModelResponse(BaseModel):
-    result: str
-
 def question(prompt):
     try:
-        # Consulta Pinecone para obtener posibles respuestas
-        search_results = pinecone.query(index_name="tu_indice_pinecone", query_vector=prompt)
-
-        # Si hay resultados, selecciona el mejor y utiliza el modelo para generar la respuesta
-        if search_results["total"] > 0:
-            best_result = search_results["results"][0]
-            full_prompt = f"{config['init_prompt']}\n{config['q_prompt']} {best_result['text']}\n{config['a_prompt']}"
-            output = LLM.invoke(full_prompt)
-            result = output["text"]
-            return result
-        else:
-            # Manejar el caso en que no haya resultados de Pinecone
-            return "No se encontraron resultados relevantes."
+        # Construye el prompt completo
+        full_prompt = f"{config['init_prompt']}\n{config['q_prompt']} {prompt}\n{config['a_prompt']}"
+        # Genera la completación usando el modelo
+        output = LLM.invoke(full_prompt)
+        result = output["choices"][0]["text"]
+        return result
     except Exception as e:
         return f"Error: {e}"
