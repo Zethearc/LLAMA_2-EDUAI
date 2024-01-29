@@ -52,9 +52,10 @@ full_prompt = PromptTemplate(
 )
 
 eduai_chain = RetrievalQA.from_chain_type(
-    llm=llm,
-    chain_type="stuff",
-    retriever=retriever
+    llm=LLM,
+    retriever=retriever,
+    return_source_documents=True,
+    chain_type_kwargs={"prompt": full_prompt}
 )
 
 # Definición del modelo de datos para la consulta
@@ -63,7 +64,7 @@ class Query(BaseModel):
 
 def question(prompt):
     try:
-        result = eduai_chain.run(prompt)
+        result = eduai_chain.invoke(prompt)
         return result
     except Exception as e:
         return f"Error: {e}"
