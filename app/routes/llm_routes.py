@@ -8,9 +8,12 @@ router = APIRouter()
 @router.get("/")
 async def version():
     return {"version": config['version'], "model_path": config['model_path']}
-
+    
 # Ruta para realizar consultas al modelo
 @router.post("/query")
 async def query(query: Query):
-    result = question(query.question)
-    return {"result": result}
+    try:
+        result = question(query.question)
+        return {"result": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")

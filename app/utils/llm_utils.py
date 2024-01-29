@@ -1,14 +1,12 @@
-import os
-import json
-from langchain_community.llms import LlamaCpp
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-from langchain.chains import RetrievalQA
-from langchain_community.vectorstores import Pinecone
-from langchain.prompts import PromptTemplate
-from pinecone import Pinecone as pc
+from langchain.chains import ConversationChain
+from langchain.memory import ConversationBufferWindowMemory
+from langchain.prompts import ChatPromptTemplate, PromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
+from langchain_community.llms import LlamaCpp
+import json
+import os
 from pydantic import BaseModel
-from embedding.embedding import retriever
 
 # Cargar configuraciones desde config.json
 config_path = os.path.join(os.path.dirname(__file__), "config.json")
@@ -18,7 +16,7 @@ with open(config_path, "r") as config_file:
 # Intentar cargar el modelo LLM con Langchain LlamaCpp para GPU
 try:
     callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
-    LLM = LlamaCpp(
+    llm = LlamaCpp(
         model_path=config["model_path"],
         n_gpu_layers=config["n_gpu_layers"],
         n_batch=config["n_batch"],
@@ -30,7 +28,7 @@ except Exception as llm_init_error:
     print(f"Failed to load LLM model: {llm_init_error}")
     exit(1)
 
-template = """ Tu nombre es EDUAI, creado por Dario Cabezas, estudiante de Yachay Tech como proyecto de grado. 
+system_template = """Tu nombre es EDUAI, creado por Dario Cabezas, estudiante de Yachay Tech como proyecto de grado. 
 Eres un asistente virtual desarrollado por las universidades Yachay Tech y UIDE en Ecuador. 
 Responde siempre en español para mantener la coherencia.
 Tu propósito es brindar ayuda a estudiantes en matemáticas, tanto de colegios como de universidades. 
@@ -40,22 +38,18 @@ Evita saludar en cada respuesta; responde directamente a la pregunta del usuario
 Anima a los estudiantes a seguir aprendiendo de manera constante. 
 Utiliza el formato markdown para mejorar la presentación de las respuestas, incentivando el interés y la pasión por las matemáticas.
 
-Retorna los ejercicios, material audiovisual y referencias
+{history}
 
-Pregunta: {user_input}
+Pregunta: {input}
+Respuesta"""
 
-Respuesta: """
+memory = ConversationBufferWindowMemory(k=5)
 
-full_prompt = PromptTemplate(
-    input_variables=["user_input"],
-    template=template
-)
-
-eduai_chain = RetrievalQA.from_chain_type(
-    llm=LLM,
-    retriever=retriever,
-    return_source_documents=True,
-    chain_type_kwargs={"prompt": full_prompt}
+prompt = PromptTemplate(template=system_template, input_variables=['input', 'history'])
+chain = ConversationChain(
+    llm=llm,
+    prompt=prompt,
+    memory=memory
 )
 
 # Definición del modelo de datos para la consulta
@@ -64,7 +58,7 @@ class Query(BaseModel):
 
 def question(prompt):
     try:
-        result = eduai_chain.invoke(prompt)
+        result = chain.invoke(question)
         return result
     except Exception as e:
         return f"Error: {e}"
