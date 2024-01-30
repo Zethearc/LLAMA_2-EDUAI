@@ -58,7 +58,7 @@ class Query(BaseModel):
 
 def question(prompt):
     try:
-        result = chain.invoke(question)
+        result = chain.invoke(input=question)
         return result
     except Exception as e:
         return f"Error: {e}"

@@ -1,6 +1,6 @@
 # my_app/app/routes/llm_routes.py
 from fastapi import APIRouter
-from utils.llm_utils import Query, question, config
+from app.utils.llm_utils import Query, question, config
 
 router = APIRouter()
 
