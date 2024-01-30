@@ -1,21 +1,23 @@
 import os
 from langchain_community.vectorstores import Pinecone
 from pinecone import Pinecone as PineconeClient
-from sentence_transformers import SentenceTransformer
-import torch
+from torch import cuda
+from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+# Configuración del modelo de embedding
+embed_model_id = 'sentence-transformers/all-MiniLM-L6-v2'
+device = f'cuda:{cuda.current_device()}' if cuda.is_available() else 'cpu'
 
-model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device=device)
+embed_model = HuggingFaceEmbeddings(
+    model_name=embed_model_id,
+    model_kwargs={'device': device},
+    encode_kwargs={'device': device, 'batch_size': 32}
+)
 
-PINECONE_API_KEY = os.environ["PINECONE_API_KEY"]
-PINECONE_ENVIRONMENT = os.environ["PINECONE_ENVIRONMENT"]
-PINECONE_INDEX_NAME = os.environ["PINECONE_INDEX_NAME"] 
+# Configuración del índice y campo de texto
+index_name = os.environ.get("PINECONE_INDEX_NAME")
 
-# Init
-pinecone = PineconeClient(api_key=PINECONE_API_KEY,
-                         environment=PINECONE_ENVIRONMENT)
-
-embeddings = model
-vectorstore = Pinecone.from_existing_index(index_name=PINECONE_INDEX_NAME, embedding=embeddings)
+# Configuración de Pinecone
+pinecone = PineconeClient(api_key=os.environ.get("PINECONE_API_KEY"), environment=os.environ.get("PINECONE_ENVIRONMENT"))
+vectorstore = Pinecone.from_existing_index(index_name=index_name, embedding=embed_model)
 retriever = vectorstore.as_retriever()
