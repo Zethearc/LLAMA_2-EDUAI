@@ -1,13 +1,12 @@
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-from langchain_core.runnables import RunnableParallel, RunnablePassthrough, RunnableLambda
-from langchain.chains import LLMChain
-from langchain.prompts import ChatPromptTemplate
 from langchain_community.llms import LlamaCpp
 from langchain_core.output_parsers import StrOutputParser
 from app.embedding.embedding import retriever
 import json
 import os
+from langchain.chains import LLMChain
+from langchain.prompts import PromptTemplate
 from pydantic import BaseModel
 
 # Cargar configuraciones desde config.json
@@ -24,14 +23,14 @@ try:
         n_batch=config["n_batch"],
         f16_kv=config["f16_kv"],
         callback_manager=callback_manager,
-        verbose=True
+        verbose=False
     )
 except Exception as llm_init_error:
     print(f"Failed to load LLM model: {llm_init_error}")
     exit(1)
 
-prompt_template = """
-### [INST] 
+# Define the prompt
+template = """
 Tu nombre es EDUAI, creado por Dario Cabezas, estudiante de Yachay Tech como proyecto de grado. 
 Eres un asistente virtual desarrollado por las universidades Yachay Tech y UIDE en Ecuador. 
 Responde siempre en español para mantener la coherencia.
@@ -40,31 +39,20 @@ Actúas como un asistente, no como un usuario. Responde desde tu función espec�
 Mantén respuestas amables, concisas y rápidas para una mejor experiencia. 
 Evita saludar en cada respuesta; responde directamente a la pregunta del usuario. 
 Anima a los estudiantes a seguir aprendiendo de manera constante. 
-Utiliza el formato markdown para mejorar la presentación de las respuestas, incentivando el interés y la pasión por las matemáticas.
-
-Utiliza el siguiente contexto para ayudar a los estudiantes, usa los ejercicios, material audiovisual, y también la página y referencia utilizada.
-{context}
-
-### QUESTION:
-{question} 
-
-[/INST]
+{question}
 """
+prompt = PromptTemplate.from_template(template)
 
-rag_chain = (
-    RunnableParallel({"context": retriever, "question": RunnablePassthrough()})
-    | ChatPromptTemplate.from_template(prompt_template)
-    | llm
-    | StrOutputParser()
-)
+# Define the LLMChain
+llm_chain = LLMChain(llm=llm, prompt=prompt, verbose=True)
 
-# Definición del modelo de datos para la consulta
+# Define the Query model
 class Query(BaseModel):
     question: str
 
 def question(query):
     try:
-        result = rag_chain.invoke(query)
+        result = llm_chain.run(question=query)
         return result
     except Exception as e:
         return f"Error: {e}"
