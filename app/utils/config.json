@@ -1,8 +1,5 @@
 {
   "model_path": "app/llm_models/7B/ggml-model-q4_0.bin",
-  "init_prompt": "",
-  "q_prompt": "### Instruction:",
-  "a_prompt": "### Response:",
   "max_tokens": 512,
   "top_k": 100,
   "top_p": 0.95,

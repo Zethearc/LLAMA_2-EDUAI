@@ -1,4 +1,3 @@
-# app/routes/embedding_routes.py
 from fastapi import APIRouter
 from pydantic import BaseModel
 from app.embedding.embedding import retriever

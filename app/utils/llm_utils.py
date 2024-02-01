@@ -1,11 +1,11 @@
-from langchain.callbacks.manager import CallbackManager
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-from langchain_community.llms import LlamaCpp
-from langchain_core.output_parsers import StrOutputParser
-from app.embedding.embedding import retriever
 import json
 import os
+
+from langchain.callbacks.manager import CallbackManager
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain.chains import LLMChain, RetrievalQA
+from langchain_community.llms import LlamaCpp
+from langchain_core.output_parsers import StrOutputParser
 from langchain.prompts import PromptTemplate
 from pydantic import BaseModel
 
@@ -29,42 +29,48 @@ except Exception as llm_init_error:
     print(f"Failed to load LLM model: {llm_init_error}")
     exit(1)
 
-# Define the prompt
-template = """
-Eres EDUAI, asistente virtual creado por Dario Cabezas como proyecto de grado. 
-Desarrollado en Yachay Tech y UIDE.
-Ayudas con preguntas sobre matematicas.
-Responde en español y sé específico en tus consultas, usa el formato markdown para mejorar las respeustas.
-Actuas como asistente, no como usuario. Responde a las preguntas de los usuarios.
-Evita saludar en cada respuesta. Mantén tus respuestas claras y concisas.
-Anima a los estudiantes a aprender constantemente.
-Usa el siguiente contexto delimitado con <ctx> y </ctx> para recomendar contenido a los estudiantes
+class ChainManager:
+    def __init__(self, llm, retriever, prompt, memory=None, use_rag=False):
+        self.llm = llm
+        self.retriever = retriever
+        self.prompt = prompt
+        self.memory = memory
+        self.use_rag = use_rag
 
-<ctx>
-{context}
-</ctx>
+    def create_chain(self):
+        if self.use_rag:
+            return self._create_llm_prompt_memory_rag_chain()
+        elif self.memory:
+            return self._create_llm_prompt_memory_chain()
+        elif self.prompt:
+            return self._create_llm_prompt_chain()
+        else:
+            return self._create_llm_only_chain()
 
-Pregunta -> {question}
-"""
-prompt = PromptTemplate(template=template, input_variables=["context", "question"])
+    def _create_llm_only_chain(self):
+        return LLMChain(llm=self.llm)
 
-llm_chain = RetrievalQA.from_chain_type(
-    llm=llm,
-    retriever=retriever,
-    chain_type="stuff",
-    chain_type_kwargs={"prompt": prompt},
-    verbose=True
-)
+    def _create_llm_prompt_chain(self):
+        return LLMChain(llm=self.llm, prompt=self.prompt)
 
-class Query(BaseModel):
-    query: str
+    def _create_llm_prompt_rag_chain(self):
+        return RetrievalQA.from_chain_type(
+            llm=self.llm,
+            retriever=self.retriever,
+            chain_type="stuff",
+            chain_type_kwargs={"prompt": self.prompt},
+            verbose=True
+        )
 
-def question(query):
-    try:
-        print(f"Querying with question: {query}")  # Agrega esta línea para depuración
-        result = llm_chain.invoke(input=query)
-        print(f"Result: {result}")  # Agrega esta línea para depuración
-        return result
-    except Exception as e:
-        print(f"Error: {e}")  # Agrega esta línea para depuración
-        return f"Error: {e}"
+    def _create_llm_prompt_memory_chain(self):
+        return LLMChain(llm=self.llm, prompt=self.prompt, memory=self.memory)
+
+    def _create_llm_prompt_memory_rag_chain(self):
+        return RetrievalQA.from_chain_type(
+            llm=self.llm,
+            retriever=self.retriever,
+            chain_type="stuff",
+            chain_type_kwargs={"prompt": self.prompt, "memory": self.memory},
+            verbose=True
+        )
+
