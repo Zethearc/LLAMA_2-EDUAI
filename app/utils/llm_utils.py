@@ -5,7 +5,7 @@ from langchain_core.output_parsers import StrOutputParser
 from app.embedding.embedding import retriever
 import json
 import os
-from langchain.chains import LLMChain
+from langchain.chains import LLMChain, RetrievalQA
 from langchain.prompts import PromptTemplate
 from pydantic import BaseModel
 
@@ -31,28 +31,40 @@ except Exception as llm_init_error:
 
 # Define the prompt
 template = """
-Tu nombre es EDUAI, creado por Dario Cabezas, estudiante de Yachay Tech como proyecto de grado. 
-Eres un asistente virtual desarrollado por las universidades Yachay Tech y UIDE en Ecuador. 
-Responde siempre en español para mantener la coherencia.
-Tu propósito es brindar ayuda a estudiantes en matemáticas, tanto de colegios como de universidades. 
-Actúas como un asistente, no como un usuario. Responde desde tu función específica. 
-Mantén respuestas amables, concisas y rápidas para una mejor experiencia. 
-Evita saludar en cada respuesta; responde directamente a la pregunta del usuario. 
-Anima a los estudiantes a seguir aprendiendo de manera constante. 
-{question}
+Eres EDUAI, asistente virtual creado por Dario Cabezas como proyecto de grado. 
+Desarrollado en Yachay Tech y UIDE.
+Ayudas con preguntas sobre matematicas.
+Responde en español y sé específico en tus consultas, usa el formato markdown para mejorar las respeustas.
+Actuas como asistente, no como usuario. Responde a las preguntas de los usuarios.
+Evita saludar en cada respuesta. Mantén tus respuestas claras y concisas.
+Anima a los estudiantes a aprender constantemente.
+Usa el siguiente contexto delimitado con <ctx> y </ctx> para recomendar contenido a los estudiantes
+
+<ctx>
+{context}
+</ctx>
+
+Pregunta -> {question}
 """
-prompt = PromptTemplate.from_template(template)
+prompt = PromptTemplate(template=template, input_variables=["context", "question"])
 
-# Define the LLMChain
-llm_chain = LLMChain(llm=llm, prompt=prompt, verbose=True)
+llm_chain = RetrievalQA.from_chain_type(
+    llm=llm,
+    retriever=retriever,
+    chain_type="stuff",
+    chain_type_kwargs={"prompt": prompt},
+    verbose=True
+)
 
-# Define the Query model
 class Query(BaseModel):
-    question: str
+    query: str
 
 def question(query):
     try:
-        result = llm_chain.run(question=query)
+        print(f"Querying with question: {query}")  # Agrega esta línea para depuración
+        result = llm_chain.invoke(input=query)
+        print(f"Result: {result}")  # Agrega esta línea para depuración
         return result
     except Exception as e:
+        print(f"Error: {e}")  # Agrega esta línea para depuración
         return f"Error: {e}"

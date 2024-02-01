@@ -1,6 +1,6 @@
 # my_app/app/routes/llm_routes.py
-from fastapi import APIRouter
-from app.utils.llm_utils import Query, question, config
+from fastapi import APIRouter, HTTPException
+from app.utils.llm_utils import Query, question, config  # Asegúrate de importar HTTPException
 
 router = APIRouter()
 
@@ -13,7 +13,7 @@ async def version():
 @router.post("/query")
 async def query(query: Query):
     try:
-        result = question(query.question)
+        result = question(query.query)  # Cambia query.question a query.query
         return {"result": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
