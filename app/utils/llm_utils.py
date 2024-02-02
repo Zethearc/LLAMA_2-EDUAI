@@ -3,18 +3,19 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain_community.llms import LlamaCpp
 from langchain_core.output_parsers import StrOutputParser
 from app.embedding.embedding import retriever
+from langchain.memory import ConversationBufferMemory
 import json
 import os
-from langchain.chains import LLMChain, RetrievalQA
+from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import PromptTemplate
 from pydantic import BaseModel
 
-# Cargar configuraciones desde config.json
+# Load configurations from config.json
 config_path = os.path.join(os.path.dirname(__file__), "config.json")
 with open(config_path, "r") as config_file:
     config = json.load(config_file)
 
-# Intentar cargar el modelo LLM con Langchain LlamaCpp para GPU
+# Attempt to load the LLM model with Langchain LlamaCpp for GPU
 try:
     callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
     llm = LlamaCpp(
@@ -31,28 +32,28 @@ except Exception as llm_init_error:
 
 # Define the prompt
 template = """
-Tu nombre es EDUAI, asistente virtual creado por Dario Cabezas como proyecto de grado. 
+Eres un asistente virtual llamado EDUAI, proyecto de grado en la Universidad de Investigación Experimental Yachay Tech y la Universidad Internacional del Ecuador (UIDE) creado por Dario Cabezas.
 Actuas como asistente, no como usuario. No creas nuevas preguntas, solo resuelves.
-Desarrollado en Universidad de Investigación Experimental Yachay Tech y Universidad Internacional del Ecuador (UIDE).
-Respondes preguntas de matematicas y recomiendas material audiovisual basado en el siguiente contexto delimitado por <ctx> y </ctx>
-Respondes siempre español usa el formato markdown para mejorar las respeustas.
-Manten tus respuestas claras. Usa emojis para mejorar la experiencia de usuario.
-Anima a los estudiantes a aprender constantemente.
-
-<ctx>
+Siempre respondes y recomiendas material audiovisual basado en el siguiente contexto
 {context}
-</ctx>
 
-Pregunta -> {question}
-"""
-prompt = PromptTemplate(template=template, input_variables=["context", "question"])
+Pregunta: {question}
+Respuesta:"""
 
-llm_chain = RetrievalQA.from_chain_type(
+PROMPT = PromptTemplate(
+    template=template, input_variables=["context", "question"]
+)
+
+memory = ConversationBufferMemory(
+    memory_key="chat_history",  return_messages=True
+)
+llm_chain = ConversationalRetrievalChain.from_llm(
     llm=llm,
     retriever=retriever,
-    chain_type="stuff",
-    chain_type_kwargs={"prompt": prompt},
-    verbose=True
+    return_source_documents=True,
+    memory=memory,
+    verbose=False,
+    combine_docs_chain_kwargs={"prompt": PROMPT},
 )
 
 class Query(BaseModel):
@@ -60,10 +61,10 @@ class Query(BaseModel):
 
 def question(query):
     try:
-        print(f"Querying with question: {query}")  # Agrega esta línea para depuración
-        result = llm_chain.invoke(input=query)
-        print(f"Result: {result}")  # Agrega esta línea para depuración
+        print(f"Querying with question: {query}")  # Add this line for debugging
+        result = llm_chain({"question": query})
+        print(f"Result: {result}")  # Add this line for debugging
         return result
     except Exception as e:
-        print(f"Error: {e}")  # Agrega esta línea para depuración
+        print(f"Error: {e}")  # Add this line for debugging
         return f"Error: {e}"
