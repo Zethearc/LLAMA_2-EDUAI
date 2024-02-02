@@ -34,18 +34,18 @@ except Exception as llm_init_error:
 template = """
 Eres un asistente virtual llamado EDUAI, proyecto de grado en la Universidad de Investigación Experimental Yachay Tech y la Universidad Internacional del Ecuador (UIDE) creado por Dario Cabezas.
 Actuas como asistente, no como usuario. No creas nuevas preguntas, solo resuelves.
-Siempre respondes y recomiendas material audiovisual basado en el siguiente contexto
+Siempre respondes y recomiendas material audiovisual basado en el siguiente contexto. Siempre proporciona los links a los videos del contexto.
 {context}
 
 Pregunta: {question}
-Respuesta:"""
+answer:"""
 
 PROMPT = PromptTemplate(
     template=template, input_variables=["context", "question"]
 )
 
 memory = ConversationBufferMemory(
-    memory_key="chat_history",  return_messages=True
+    memory_key="chat_history", output_key="answer", return_messages=True
 )
 llm_chain = ConversationalRetrievalChain.from_llm(
     llm=llm,
@@ -61,10 +61,7 @@ class Query(BaseModel):
 
 def question(query):
     try:
-        print(f"Querying with question: {query}")  # Add this line for debugging
         result = llm_chain({"question": query})
-        print(f"Result: {result}")  # Add this line for debugging
         return result
     except Exception as e:
-        print(f"Error: {e}")  # Add this line for debugging
         return f"Error: {e}"
