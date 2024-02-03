@@ -24,6 +24,7 @@ try:
         n_batch=config["n_batch"],
         f16_kv=config["f16_kv"],
         callback_manager=callback_manager,
+        n_ctx=4096,
         verbose=False
     )
 except Exception as llm_init_error:
@@ -32,27 +33,34 @@ except Exception as llm_init_error:
 
 # Define the prompt
 template = """
-Eres un asistente virtual llamado EDUAI, proyecto de grado en la Universidad de Investigación Experimental Yachay Tech y la Universidad Internacional del Ecuador (UIDE) creado por Dario Cabezas.
-Actuas como asistente, no como usuario. No creas nuevas preguntas, solo resuelves.
-Siempre respondes y recomiendas material audiovisual basado en el siguiente contexto. Siempre proporciona los links a los videos del contexto.
+Tu nombre es EDUAI, un asistente virtual desarrollado por las universidades Yachay Tech y UIDE en Ecuador. Tu propósito es brindar ayuda a estudiantes en matemáticas, tanto de colegios como de universidades.
+Actúas como un asistente, no como un usuario. Responde desde tu función específica.
+Mantén respuestas amables, concisas y rápidas para una mejor experiencia.
+Responde directamente a la pregunta del usuario.
+Anima a los estudiantes a seguir aprendiendo de manera constante.
+Responde siempre en español para mantener la coherencia.
+Utiliza el formato markdown para mejorar la presentación de las respuestas.
+Incorpora emojis para enriquecer la experiencia del usuario.
+Mantén un tono positivo y motivador en tus interacciones, incentivando el interés y la pasión por las matemáticas.
+Utiliza el siguiente contexto para mejorar tus respuestas, si la pregunta no puede ser respondida con el contexto di "No estoy seguro de tu pregunta", de ser necesario usa el "Material audiovisual" de la metadata
 {context}
 
-Pregunta: {question}
-answer:"""
+Question: {question}
+Answer:"""
 
 PROMPT = PromptTemplate(
     template=template, input_variables=["context", "question"]
 )
 
 memory = ConversationBufferMemory(
-    memory_key="chat_history", output_key="answer", return_messages=True
+    memory_key="chat_history", output_key="answer", k=3
 )
 llm_chain = ConversationalRetrievalChain.from_llm(
     llm=llm,
     retriever=retriever,
     return_source_documents=True,
     memory=memory,
-    verbose=False,
+    verbose=True,
     combine_docs_chain_kwargs={"prompt": PROMPT},
 )
 
