@@ -23,5 +23,9 @@ index_name = os.environ.get("PINECONE_INDEX_NAME")
 
 # Configuración de Pinecone
 pinecone = PineconeClient(api_key=os.environ.get("PINECONE_API_KEY"), environment=os.environ.get("PINECONE_ENVIRONMENT"))
-vectorstore = Pinecone.from_existing_index(index_name=index_name, embedding=embed_model_instance.embed_model, text_key="Descripcion")
+vectorstore = Pinecone.from_existing_index(index_name=index_name, embedding=embed_model_instance.embed_model, text_key="text")
 retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
+
+def perform_similarity_search(query, vectorstore, top_k=2):
+    responses = vectorstore.similarity_search(query, k=top_k)
+    return responses

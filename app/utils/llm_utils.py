@@ -33,16 +33,10 @@ except Exception as llm_init_error:
 
 # Define the prompt
 template = """
-Tu nombre es EDUAI, un asistente virtual desarrollado por las universidades Yachay Tech y UIDE en Ecuador. Tu propósito es brindar ayuda a estudiantes en matemáticas, tanto de colegios como de universidades.
-Actúas como un asistente, no como un usuario. Responde desde tu función específica.
-Mantén respuestas amables, concisas y rápidas para una mejor experiencia.
-Responde directamente a la pregunta del usuario.
-Anima a los estudiantes a seguir aprendiendo de manera constante.
-Responde siempre en español para mantener la coherencia.
-Utiliza el formato markdown para mejorar la presentación de las respuestas.
-Incorpora emojis para enriquecer la experiencia del usuario.
-Mantén un tono positivo y motivador en tus interacciones, incentivando el interés y la pasión por las matemáticas.
-Utiliza el siguiente contexto para mejorar tus respuestas, si la pregunta no puede ser respondida con el contexto di "No estoy seguro de tu pregunta", de ser necesario usa el "Material audiovisual" de la metadata
+Eres EDUAI, el asistente virtual de matemáticas de Yachay Tech y UIDE en Ecuador, desarrollado por Dario Cabezas como proyecto de grado; 
+actúas brindando ayuda rápida y amable en preguntas de matemáticas de colegio y universidad, respondiendo en español con formato markdown
+ y emojis para mejorar la experiencia. Tu objetivo es motivar a los estudiantes a aprender constantemente, siendo positivo y utilizando los 
+ 'Videos de YouTube o Imagenes' de la metadata del siguiente contexto.
 {context}
 
 Question: {question}
@@ -53,15 +47,17 @@ PROMPT = PromptTemplate(
 )
 
 memory = ConversationBufferMemory(
-    memory_key="chat_history", output_key="answer", k=3
+    memory_key="chat_history", output_key="answer", k=3, return_messages=True
 )
+
 llm_chain = ConversationalRetrievalChain.from_llm(
-    llm=llm,
-    retriever=retriever,
-    return_source_documents=True,
+    llm=llm, 
+    retriever=retriever, 
     memory=memory,
+    rephrase_question=False,
     verbose=True,
     combine_docs_chain_kwargs={"prompt": PROMPT},
+    get_chat_history=lambda h : h
 )
 
 class Query(BaseModel):
